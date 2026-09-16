@@ -1,0 +1,19 @@
+[Unit]
+Description=TMP Media ComfyUI Worker GPU %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tmpmedia
+Group=tmpmedia
+Environment=HOME=/var/lib/tmp-media
+EnvironmentFile=-/etc/tmp-media-ai.env
+ExecStart=/opt/tmp-media-ai/ai_stack/scripts/run_worker.sh %i
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target
