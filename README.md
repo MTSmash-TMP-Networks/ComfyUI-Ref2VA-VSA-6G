@@ -9,7 +9,7 @@
 
 > **Low-VRAM fork for MiniMax H3 Reference-to-Video.** This repository packages the Ref2VA/VSA node together with the VDN-H3 low-VRAM setup, ComfyUI 0.36 compatibility patch, automatic model installation and ready-to-use workflows.
 >
-> A **24 GB GPU is not required** for the low-resolution workflows in this fork. We have the pipeline running on **6 GB-class hardware** with aggressive CPU/RAM offloading. More VRAM still allows higher resolution, longer clips and faster execution.
+> A **24 GB GPU is not required** for the low-resolution workflows in this fork. We have the pipeline running on **8 GB-class hardware** with aggressive CPU/RAM offloading. More VRAM still allows higher resolution, longer clips and faster execution.
 
 ---
 
