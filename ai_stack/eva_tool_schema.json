@@ -1,0 +1,20 @@
+{
+  "name": "comfyui_media",
+  "base_url": "http://127.0.0.1:8200/api/v1",
+  "authentication": {
+    "type": "header",
+    "header": "X-API-Key",
+    "env": "TMP_MEDIA_API_KEY"
+  },
+  "actions": [
+    {"name": "health", "method": "GET", "path": "/health"},
+    {"name": "list_templates", "method": "GET", "path": "/templates"},
+    {"name": "list_nodes", "method": "GET", "path": "/nodes"},
+    {"name": "upload_asset", "method": "POST", "path": "/assets", "content_type": "multipart/form-data"},
+    {"name": "validate_workflow", "method": "POST", "path": "/workflows/validate"},
+    {"name": "render_template", "method": "POST", "path": "/jobs"},
+    {"name": "render_workflow", "method": "POST", "path": "/jobs/raw"},
+    {"name": "job_status", "method": "GET", "path": "/jobs/{job_id}"},
+    {"name": "job_outputs", "method": "GET", "path": "/jobs/{job_id}/outputs"}
+  ]
+}
