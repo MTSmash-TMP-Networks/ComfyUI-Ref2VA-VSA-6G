@@ -1,179 +1,287 @@
-# ComfyUI-Ref2VA-VSA: Ultra-Fast Character Video Generation (72s on RTX 4090)
+# ComfyUI MiniMax H3 Ref2VA / VDN-H3 - Low VRAM 6GB+
 
 <p align="center">
-  <img src="https://img.shields.io/badge/ComfyUI-Custom%20Node-blue?style=for-the-badge" alt="ComfyUI">
-  <img src="https://img.shields.io/badge/Model-MiniMax--H3%20Ref2VA-orange?style=for-the-badge" alt="MiniMax-H3">
-  <img src="https://img.shields.io/badge/Speed-72s%20%2F%205s%20Video-brightgreen?style=for-the-badge" alt="Speed">
-  <img src="https://img.shields.io/badge/Hardware-RTX%204090%20(24GB)-purple?style=for-the-badge" alt="Hardware">
+  <img src="https://img.shields.io/badge/ComfyUI-0.36.0-blue?style=for-the-badge" alt="ComfyUI 0.36.0">
+  <img src="https://img.shields.io/badge/Model-MiniMax--H3%20Ref2VA-orange?style=for-the-badge" alt="MiniMax-H3 Ref2VA">
+  <img src="https://img.shields.io/badge/VRAM-6GB%2B-brightgreen?style=for-the-badge" alt="6GB+ VRAM">
+  <img src="https://img.shields.io/badge/VDN--H3-8%20Steps-purple?style=for-the-badge" alt="VDN-H3 8 Steps">
 </p>
 
-> **Breakthrough inference speed for MiniMax H3 Reference-to-Video (Ref2VA / R2VA)**: Generate a full 5-second, 24 fps video conditioned on reference character images in **~72s (warm) / 95s (first run)** on a single consumer **NVIDIA GeForce RTX 4090 (24GB)**.
+> **Low-VRAM fork for MiniMax H3 Reference-to-Video.** This repository packages the Ref2VA/VSA node together with the VDN-H3 low-VRAM setup, ComfyUI 0.36 compatibility patch, automatic model installation and ready-to-use workflows.
+>
+> A **24 GB GPU is not required** for the low-resolution workflows in this fork. We have the pipeline running on **6 GB-class hardware** with aggressive CPU/RAM offloading. More VRAM still allows higher resolution, longer clips and faster execution.
 
 ---
 
-## 🎬 Empirical Benchmark & Results
+## What this fork adds
 
-Both videos were generated on the exact same **NVIDIA GeForce RTX 4090 (24GB)**, using the exact same prompt, character reference image, seed (`981445682258077`), and resolution (**1344×768, 5.16s @ 24 fps / 124 frames**).
-
-<p align="center">
-  <img src="assets/example_character.jpg" width="220" style="border-radius: 8px;" alt="Input Reference Character">
-  <br>
-  <b>Input Character Reference Image</b>
-</p>
-
-<table>
-  <thead>
-    <tr align="center">
-      <th width="50%">
-        <h3>🚀 Ref2VA VSA (Ours - 4 Steps)</h3>
-        <b>⏱️ 95s (1st run) / ~72s (warm)</b>
-      </th>
-      <th width="50%">
-        <h3>🔬 Video Delta Net / VDN-H3 (8 Steps)</h3>
-        <b>⏱️ 213s (1st run) / ~135s (warm)</b>
-      </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center">
-        <img src="assets/vsa_ref2va_preview.webp" width="100%" alt="Ref2VA VSA Preview">
-        <br>
-        <a href="assets/vsa_ref2va_4step_95s.mp4"><b>▶ Download Full 1344x768 Video (MP4)</b></a>
-      </td>
-      <td align="center">
-        <img src="assets/vdn_ref2va_preview.webp" width="100%" alt="VDN-H3 Preview">
-        <br>
-        <a href="assets/vdn_ref2va_8step_213s.mp4"><b>▶ Download Full 1344x768 Video (MP4)</b></a>
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <ul>
-          <li><b>Sampling:</b> 4 steps (<code>euler</code> / <code>simple</code>)</li>
-          <li><b>Attention:</b> 75% video sparsity top-k (sparse DiT)</li>
-          <li><b>Speedup:</b> <b>2.24x faster</b> than VDN; <b>9x faster</b> than native H3</li>
-          <li><b>Peak VRAM:</b> ~13.5 GB</li>
-        </ul>
-      </td>
-      <td>
-        <ul>
-          <li><b>Sampling:</b> 8 steps (<code>er_sde</code> / <code>beta</code>)</li>
-          <li><b>Attention:</b> Hybrid (windowed dense + linear delta state)</li>
-          <li><b>Speedup:</b> ~3.5x faster than native H3</li>
-          <li><b>Peak VRAM:</b> ~18.5 GB</li>
-        </ul>
-      </td>
-    </tr>
-  </tbody>
-</table>
+- MiniMax H3 **Ref2VA** image-to-video / reference-to-video generation.
+- **VDN-H3 8-step** inference for better quality than the older 4-step test path.
+- Low-VRAM settings for **6 GB+ NVIDIA GPUs**.
+- CPU offloading for large model components.
+- ComfyUI **0.36.0 attention-shape compatibility fix** for VDN-H3.
+- MiniMax block-loop hook installer.
+- Optional VSA / 4-step files from the original Ref2VA-VSA project.
+- Reference voice support using **MP3 or WAV** files.
+- Ready-to-use workflow for image + voice reference generation.
+- Complete `install.sh`, `start_lowvram.sh` and `check_install.sh` scripts.
 
 ---
 
-## 📊 Comprehensive Performance Comparison (RTX 4090)
+## Tested low-VRAM setup
 
-| Pipeline | Attention Mechanism | Steps / Sampler | 1st Run Latency | Warm Wall Time | Peak VRAM |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **MiniMax H3 Native Dense** | Dense Global Softmax | 50 steps / Euler | ~650s | **~650s (10.8 min)** | ~22.5 GB |
-| **H3 Turbo LoRA (Dense)** | Dense Global Softmax | 4 steps / Euler | ~210s | **~190s (3.1 min)** | ~21.0 GB |
-| **Video Delta Net (VDN-H3)** | Windowed + Linear Delta | 8 steps / er_sde | 213.0s | **~135s (2.2 min)** | ~18.5 GB |
-| **Ref2VA VSA (This Repo)** 🚀 | **75% Video Sparsity + Dense Prefix** | **4 steps / Euler** | **95.2s** | **~72 seconds** | **~13.5 GB** |
+The low-VRAM configuration is intended for systems where the GPU is much smaller than the full MiniMax H3 model.
 
----
+Typical working settings:
 
-## 🧠 Technical Architecture: Why Ref2VA was Hard for VSA
+| Setting | Low-VRAM value |
+| :--- | :--- |
+| GPU VRAM | **6 GB+** |
+| System RAM | **32 GB minimum, 64 GB recommended** |
+| Resolution | 512x288 or 576x320 |
+| Clip length | short clips, typically 73-90 frames |
+| FPS | 24 |
+| VDN steps | 8 |
+| Scheduler | simple |
+| Sampler | res_multistep |
+| ComfyUI mode | `--lowvram` |
+| Text encoder | CPU |
+| VDN branch weights | stream |
+| VDN retain buffers | off |
 
-[FastVideo](https://github.com/hao-ai-lab/FastVideo) pioneered Visual Sparse Attention (VSA) for text-to-video (T2V) by clustering video tokens into 3D spatial-temporal tiles (4×4×4) and dynamically pruning 75–90% of tiles via a learned gating projection (`to_gate_compress`).
-
-However, **Ref2VA (Reference-to-Video)** was widely considered incompatible with VSA because:
-1. Ref2VA prepends dynamic multimodal condition segments (reference image latents, reference audio latents, and text prompt tokens) ahead of the generated video sequence.
-2. Naive 3D tiling causes tokens from different modalities to straddle the same tile, corrupting the conditioning masks and breaking identity fidelity.
-
-### The Solution: `Ref2VAVSAGatePatch`
-Our patch resolves this with an engineered two-tier attention layout:
-1. **Multimodal Dense-Exempt Prefix**: The geometry mapper isolates text, reference image, and reference audio tokens into segment-pure tiles that are **completely exempt from top-k pruning**. Reference tokens always remain 100% dense, guaranteeing strict character identity adherence.
-2. **Video-Only Sparse Attention**: VSA top-k pruning is applied *strictly* to generated-video key tiles.
-3. **Gate Transplant**: The 50 learned `to_gate_compress` projection matrices are transplanted directly onto the Ref2VA base model (`minimax_h3_ref2va_pruned_int8_convrot.safetensors`).
+The exact maximum resolution and clip length depend on GPU VRAM, system RAM, CUDA/PyTorch version and the selected workflow.
 
 ---
 
-## 📦 Requirements
+## Requirements
 
-- **ComfyUI** (latest version with native MiniMax-H3 support).
-- **comfy-kitchen** installed with CUDA `sol_attn` support.
-- PyTorch 2.4+ and CUDA 12.1+.
-- NVIDIA GPU with 24GB VRAM (RTX 3090, RTX 4090, A5000, L40S, etc.).
+- Linux, preferably Ubuntu or Debian.
+- NVIDIA GPU with CUDA support.
+- **6 GB VRAM or more** for the low-resolution workflows.
+- **64 GB system RAM recommended** for comfortable CPU offloading.
+- Working NVIDIA driver (`nvidia-smi`).
+- Around 50 GB or more free disk space for ComfyUI, checkpoints and caches.
 
-### Checkpoints & Direct Download Links
-Place the following files in your `ComfyUI/models/` directories:
+The installer currently uses the tested baseline:
 
-| Model Type | File Name | Destination Directory | Download Link |
-| :--- | :--- | :--- | :--- |
-| **Diffusion Model** | `minimax_h3_ref2va_pruned_int8_convrot.safetensors` | `models/diffusion_models/` | [Download from Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax_H3_repackaged/resolve/main/split_files/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors) |
-| **VSA Gate** | `fasth3_vsa_gate.safetensors` | `models/loras/` | [Download from Hugging Face](https://huggingface.co/barelymining/ComfyUI-MiniMax-H3-FastVideo/resolve/main/fasth3_vsa_gate.safetensors) |
-| **Turbo LoRA (4-Step)** | `minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` | `models/loras/` | [Download from LightX2V](https://huggingface.co/lightx2v/Minimax-h3-Turbo/resolve/main/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors) |
-| **Text Encoder** | `qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors` | `models/text_encoders/` | [Download from Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax_H3_repackaged/resolve/main/split_files/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors) |
-| **Video VAE** | `minimax_h3_video_vae_fp16.safetensors` | `models/vae/` | [Download from Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax_H3_repackaged/resolve/main/split_files/vae/minimax_h3_video_vae_fp16.safetensors) |
-| **Audio VAE** | `minimax_h3_audio_vae_fp32.safetensors` | `models/vae/` | [Download from Comfy-Org](https://huggingface.co/Comfy-Org/MiniMax_H3_repackaged/resolve/main/split_files/vae/minimax_h3_audio_vae_fp32.safetensors) |
-
-> 💡 *Tip: The VSA Gate can also be extracted locally from any official FastH3 base checkpoint using the included `tools/extract_vsa_gate.py` script.*
+- ComfyUI 0.36.0 baseline
+- Python 3.10+
+- PyTorch/CUDA packages from the ComfyUI requirements
+- VDN-H3 low-VRAM node
+- MiniMax-H3-Turbo helper node for pruned-base adapter support
 
 ---
 
-## 🚀 Quick Start
+## One-command installation
 
-1. Clone or copy this repository into your ComfyUI `custom_nodes` directory:
-   ```bash
-   cd ComfyUI/custom_nodes
-   git clone https://github.com/Kablex/ComfyUI-Ref2VA-VSA
-   ```
-
-2. Copy the example character image into your ComfyUI input folder:
-   ```bash
-   cp ComfyUI-Ref2VA-VSA/assets/example_character.jpg ComfyUI/input/
-   ```
-
-3. Restart ComfyUI. The node appears under:
-   `FastH3/VSA -> Ref2VA VSA Gate Transplant (EXPERIMENTAL)`
-
-4. Load the ready-to-use workflow from `workflows/ref2va_vsa_4step_rtx4090.json` and click **Queue Prompt**.
-
----
-
-## 🛠️ Node Wiring
-
-```
-[UNETLoader (Ref2VA INT8)]
-        │
-        ▼
-[LoraLoaderModelOnly (Turbo 4-Step LoRA, strength=1.0)]
-        │
-        ▼
-[Ref2VAVSAGatePatch (fasth3_vsa_gate.safetensors, sparsity=0.75)]
-        │
-        ▼
-[MiniMaxH3SigmaShift (shift_video=12, shift_audio=3)]
-        │
-        ├──► [BasicScheduler (steps=4, scheduler=simple)]
-        │
-        └──► [BasicGuider] ──► [SamplerCustomAdvanced (sampler=euler)]
-```
-
----
-
-## 🧰 Extracting the Gate File (`tools/extract_vsa_gate.py`)
-
-If you have a FastH3 VSA base checkpoint (`minimax_h3_fastvideo_vsa_datafree_1300step_4step_int8_convrot.safetensors`), you can extract `fasth3_vsa_gate.safetensors` yourself:
+Clone this repository anywhere on the target Linux machine:
 
 ```bash
-python tools/extract_vsa_gate.py \
-    --input /path/to/minimax_h3_fastvideo_vsa_datafree_1300step_4step_int8_convrot.safetensors \
-    --output /path/to/ComfyUI/models/loras/fasth3_vsa_gate.safetensors
+git clone https://github.com/MTSmash-TMP-Networks/ComfyUI-Ref2VA-VSA-6G.git
+cd ComfyUI-Ref2VA-VSA-6G
+bash install.sh
+```
+
+The installer automatically sets up:
+
+```text
+System dependencies
+    -> ComfyUI
+    -> Python virtual environment
+    -> TMP Ref2VA/VSA node
+    -> VDN-H3 node
+    -> MiniMax-H3-Turbo helper node
+    -> MiniMax H3 Ref2VA INT8 model
+    -> Qwen3-VL text encoder
+    -> Video VAE
+    -> Audio VAE
+    -> optional VSA gate / 4-step LoRA
+    -> VDN-H3 stage checkpoint
+    -> MiniMax block-loop hook
+    -> ComfyUI 0.36 VDN shape patch
+    -> example character
+    -> test workflow
+    -> low-VRAM start script
+```
+
+### Start ComfyUI
+
+```bash
+~/start_comfyui_vdn_lowvram.sh
+```
+
+Default URL:
+
+```text
+http://127.0.0.1:8188
+```
+
+For LAN access:
+
+```bash
+COMFY_LISTEN=0.0.0.0 ~/start_comfyui_vdn_lowvram.sh
+```
+
+### Verify the installation
+
+```bash
+cd ~/ComfyUI/custom_nodes/ComfyUI-Ref2VA-VSA-6G
+bash check_install.sh
 ```
 
 ---
 
-## 📄 License & Acknowledgements
+## Installer options
+
+Skip model downloads if the checkpoints already exist:
+
+```bash
+SKIP_MODELS=1 bash install.sh
+```
+
+Do not install the optional VSA / 4-step model files:
+
+```bash
+INSTALL_VSA_FILES=0 bash install.sh
+```
+
+Pin an existing ComfyUI installation to the tested baseline:
+
+```bash
+PIN_EXISTING_COMFY=1 bash install.sh
+```
+
+Install ComfyUI to another directory:
+
+```bash
+COMFY_DIR=/opt/ComfyUI bash install.sh
+```
+
+---
+
+## Reference image and voice
+
+The included workflow uses:
+
+```text
+ComfyUI/input/example_character.jpg
+ComfyUI/input/voice_reference.mp3
+```
+
+Your own voice reference can be MP3 or WAV. A short, clean speech recording without music or strong room echo generally works best.
+
+Example:
+
+```bash
+cp my_voice.mp3 ~/ComfyUI/input/voice_reference.mp3
+```
+
+The bundled low-VRAM test workflow is installed to:
+
+```text
+ComfyUI/user/default/workflows/TMP-Networks/vdn_h3_audio_reference_576x320_90f.json
+```
+
+---
+
+## Checkpoints
+
+The installer downloads the following core models automatically:
+
+| Model Type | File Name | Destination |
+| :--- | :--- | :--- |
+| Diffusion Model | `minimax_h3_ref2va_pruned_int8_convrot.safetensors` | `models/diffusion_models/` |
+| Text Encoder | `qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors` | `models/text_encoders/` |
+| Video VAE | `minimax_h3_video_vae_fp16.safetensors` | `models/vae/` |
+| Audio VAE | `minimax_h3_audio_vae_fp32.safetensors` | `models/vae/` |
+| VSA Gate | `fasth3_vsa_gate.safetensors` | `models/loras/` |
+| Turbo LoRA | `minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` | `models/loras/` |
+| VDN-H3 | `stage-dmd-step-250-int8_convrot_comfyui` | `models/vdn/` |
+
+---
+
+## Low-VRAM VDN configuration
+
+The start script uses conservative settings for small GPUs:
+
+```bash
+export VDN_H3_AUTO_MEMORY=0
+export VDN_H3_OUTPROJ_CACHE_GIB=0
+export VDN_H3_LONG_CACHE_ENABLE=0
+export VDN_H3_WINDOW_GROUP_BATCH=1
+export VDN_H3_STREAM_PREFETCH=0
+export VDN_H3_BRANCH_OVERLAP=0
+export VDN_H3_SELECTIVE_WEIGHT_LOAD=1
+```
+
+ComfyUI is started with:
+
+```bash
+python main.py \
+  --listen 127.0.0.1 \
+  --port 8188 \
+  --lowvram \
+  --disable-comfy-compiler
+```
+
+These settings intentionally trade speed for lower GPU memory consumption.
+
+---
+
+## ComfyUI 0.36 VDN compatibility patch
+
+Current ComfyUI attention backends may return the dense attention result with the head dimension flattened. Older VDN-H3 code expected a different tensor layout and could fail with an error similar to:
+
+```text
+The size of tensor a (1407) must match the size of tensor b (56)
+```
+
+This repository includes:
+
+```text
+tools/patch_vdn_comfy036.py
+```
+
+`install.sh` applies the compatibility patch automatically and creates a backup before changing the VDN file.
+
+---
+
+## About the original 24 GB benchmarks
+
+The upstream Ref2VA-VSA project published its performance comparisons on an RTX 4090 with 24 GB VRAM and high-resolution 1344x768 generation. Those benchmark numbers are useful for comparing inference methods, but **they are not the minimum hardware requirement for this low-VRAM fork**.
+
+This fork focuses on making MiniMax H3 Ref2VA / VDN usable on much smaller GPUs by combining quantized models, CPU offloading, streamed VDN branch weights and lower-resolution workflows.
+
+If you have a 24 GB GPU, you can of course raise resolution and clip length significantly.
+
+---
+
+## Original Ref2VA VSA architecture
+
+[FastVideo](https://github.com/hao-ai-lab/FastVideo) pioneered Visual Sparse Attention (VSA) for text-to-video by clustering video tokens into spatial-temporal tiles and pruning low-value tiles with a learned gate.
+
+The original Ref2VA VSA implementation adapts this to reference-conditioned MiniMax H3 by keeping multimodal reference tokens dense while applying sparse attention to generated video tokens.
+
+The `Ref2VAVSAGatePatch` therefore uses:
+
+1. A dense multimodal prefix for text, reference images and reference audio.
+2. Sparse attention only for generated-video tokens.
+3. Gate weights transplanted onto the Ref2VA base model.
+
+VDN-H3 is provided as an additional inference path in this fork and is currently the preferred quality-oriented low-VRAM test path.
+
+---
+
+## License and acknowledgements
 
 - Licensed under the [Apache License 2.0](LICENSE).
-- Special thanks to the **FastVideo** team for the VSA-H3 attention concept and to the **ComfyUI** / **comfy-kitchen** developers for the CUDA Sol-Attention kernel primitives.
+- Based on the original `ComfyUI-Ref2VA-VSA` work by Kablex.
+- VDN-H3 integration uses the `ComfyUI-VDN-H3-24GB` project by Speach1sdef178 with additional low-VRAM configuration and compatibility patching.
+- MiniMax-H3-Turbo helper support is based on Larryvrh's ComfyUI node.
+- Thanks to the FastVideo, MiniMax, ComfyUI and comfy-kitchen developers.
+
+---
+
+## Disclaimer
+
+This is an experimental low-VRAM setup. Working generation on a 6 GB-class GPU does not mean every resolution, frame count or model combination will fit into 6 GB VRAM. Start with the bundled 512x288 or 576x320 workflows and increase quality gradually.
