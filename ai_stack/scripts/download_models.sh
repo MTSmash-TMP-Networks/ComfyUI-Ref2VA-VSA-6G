@@ -57,7 +57,13 @@ case "$PROFILE" in
   flux) install_flux ;;
   ltx) install_ltx ;;
   h3) install_h3 ;;
-  all) install_flux; install_ltx; install_h3 ;;
+  all)
+    rc=0
+    install_flux || rc=1
+    install_ltx || rc=1
+    install_h3 || rc=1
+    exit "$rc"
+    ;;
   none) echo "No models requested." ;;
   *) echo "Usage: $0 {flux|ltx|h3|all|none}" >&2; exit 2 ;;
 esac
