@@ -1,0 +1,194 @@
+{
+  "1": {
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "MiniMax H3 Ref2VA INT8"
+    }
+  },
+  "2": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "cpu"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Qwen3-VL Text Encoder auf CPU"
+    }
+  },
+  "4": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "MiniMax Video VAE"
+    }
+  },
+  "5": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "MiniMax Audio VAE"
+    }
+  },
+  "6": {
+    "inputs": {
+      "prompt": "subject_definitions:\n<Subject 1> is the young woman in <Picture 1>.\n<Audio 1> is the voice-timbre reference for <Subject 1> (S1).\n\nsummary:\n[reference generation + audio reference] <Subject 1> speaks directly to the camera in a warm, natural and conversational manner.\n\ndetailed_description:\nA single continuous medium close-up shot in a warm modern room. The camera remains mostly still. Natural realistic lighting, clean image, sharper facial details, detailed skin, stable facial identity, subtle head movement, natural blinking and small hand gestures.\n\n<Subject 1> (S1) looks directly into the camera and speaks in German using the warm, natural female voice timbre referenced from <Audio 1>. Her delivery is calm, friendly and confident, with a natural conversational pace.\n\n<Subject 1> (S1) says,\n<d>[German] Hallo, schön dass du da bist. Ich möchte dir heute etwas Neues zeigen. Heute teste ich eine neue Sprachreferenz für dieses Video.</d>\n\nHer lip movement closely follows the spoken words. After finishing the sentence she gives a small natural smile and continues looking into the camera.\n\noverall_soundscape:\nQuiet indoor room tone. Clear close-recorded voice with no noticeable echo.\n\nnon_diegetic_music:\nN/A",
+      "width": 576,
+      "height": 320,
+      "length": 90,
+      "ref_image_size": "match",
+      "clip": ["2", 0],
+      "vae": ["4", 0],
+      "audio_vae": ["5", 0],
+      "ref_images.ref_image_0": ["50", 0],
+      "ref_audios.ref_audio_0": ["60", 0]
+    },
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "_meta": {
+      "title": "MiniMax H3 Reference to Video - Low VRAM Audio Ref"
+    }
+  },
+  "8": {
+    "inputs": {
+      "noise_seed": 981445682258077
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "Random Noise"
+    }
+  },
+  "9": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "VDN Sampler - res_multistep"
+    }
+  },
+  "10": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 1,
+      "model": ["270", 0]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "VDN 8 Steps / simple"
+    }
+  },
+  "11": {
+    "inputs": {
+      "model": ["270", 0],
+      "conditioning": ["6", 0]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider"
+    }
+  },
+  "12": {
+    "inputs": {
+      "noise": ["8", 0],
+      "guider": ["11", 0],
+      "sampler": ["9", 0],
+      "sigmas": ["10", 0],
+      "latent_image": ["6", 1]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "VDN-H3 Sampler"
+    }
+  },
+  "13": {
+    "inputs": {
+      "samples": ["12", 0],
+      "vae": ["4", 0]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "Video Decode"
+    }
+  },
+  "14": {
+    "inputs": {
+      "samples": ["12", 0],
+      "vae": ["5", 0]
+    },
+    "class_type": "VAEDecodeAudio",
+    "_meta": {
+      "title": "Audio Decode"
+    }
+  },
+  "15": {
+    "inputs": {
+      "fps": 24,
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "images": ["13", 0],
+      "audio": ["14", 0]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Create Video"
+    }
+  },
+  "16": {
+    "inputs": {
+      "filename_prefix": "video/VDN_H3_German_Speech_AudioRef_576x320_90f",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto",
+      "video-preview": "",
+      "video": ["15", 0]
+    },
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save Video"
+    }
+  },
+  "50": {
+    "inputs": {
+      "image": "example_character.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Reference Image"
+    }
+  },
+  "60": {
+    "inputs": {
+      "audio": "voice_reference.mp3"
+    },
+    "class_type": "LoadAudio",
+    "_meta": {
+      "title": "Load Voice Reference Audio"
+    }
+  },
+  "270": {
+    "inputs": {
+      "model": ["1", 0],
+      "vdn_checkpoint": "stage-dmd-step-250-int8_convrot_comfyui",
+      "apply_turbo_adapter": true,
+      "strength": 1.0,
+      "lora_mode": "bypass",
+      "branch_weights": "stream",
+      "retain_buffers": "off",
+      "verbose": true,
+      "attention_backend": "grouped"
+    },
+    "class_type": "ApplyVDNH3_24GB",
+    "_meta": {
+      "title": "Apply VDN-H3 - Low VRAM Experiment"
+    }
+  }
+}
