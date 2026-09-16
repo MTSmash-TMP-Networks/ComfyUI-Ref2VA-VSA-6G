@@ -1,4 +1,4 @@
-# ComfyUI MiniMax H3 Ref2VA / VDN-H3 - Low VRAM 6GB+
+# ComfyUI MiniMax H3 Ref2VA / VDN-H3 - Low VRAM 8GB+
 
 <p align="center">
   <img src="https://img.shields.io/badge/ComfyUI-0.36.0-blue?style=for-the-badge" alt="ComfyUI 0.36.0">
