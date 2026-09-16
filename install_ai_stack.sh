@@ -54,6 +54,7 @@ else
 fi
 rm -rf "$ROOT/ai_stack"
 cp -a "$ROOT/source/ai_stack" "$ROOT/ai_stack"
+chmod +x "$ROOT/ai_stack/scripts/"*.sh
 
 say "Installing ComfyUI pinned baseline"
 clone_or_update "https://github.com/Comfy-Org/ComfyUI.git" "$ROOT/ComfyUI" "$COMFY_REF"
