@@ -1,0 +1,18 @@
+[Unit]
+Description=TMP Media AI Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tmpmedia
+Group=tmpmedia
+Environment=HOME=/var/lib/tmp-media
+EnvironmentFile=-/etc/tmp-media-ai.env
+WorkingDirectory=/opt/tmp-media-ai/ai_stack
+ExecStart=/opt/tmp-media-ai/gateway-venv/bin/uvicorn gateway.app:app --host 0.0.0.0 --port ${TMP_MEDIA_GATEWAY_PORT}
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
