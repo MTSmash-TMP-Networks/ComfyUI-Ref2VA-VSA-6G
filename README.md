@@ -36,7 +36,7 @@ Typical working settings:
 
 | Setting | Low-VRAM value |
 | :--- | :--- |
-| GPU VRAM | **6 GB+** |
+| GPU VRAM | **8 GB+** |
 | System RAM | **32 GB minimum, 64 GB recommended** |
 | Resolution | 512x288 or 576x320 |
 | Clip length | short clips, typically 73-90 frames |
